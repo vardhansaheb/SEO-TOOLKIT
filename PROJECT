@@ -1,0 +1,67 @@
+import sqlite3
+import codecs
+import urllib.request
+import os
+from bs4 import BeautifulSoup
+
+file1 = open("D:\\rejectlist.txt","r")
+ignore = file1.read().split()
+ignoreset = set(ignore)
+file1.close()
+str1 = None
+i = 0
+while i <  6:
+    website = input("Enter the website : ")
+    req = urllib.request.Request(website)
+    D = {}
+    f = codecs.open("code.txt", "a+",encoding="utf-8")
+    page = urllib.request.urlopen(req)
+    soup = BeautifulSoup(page,"html.parser")
+    print(soup.title)
+    print(soup.title.string)
+    for script in soup(["script","style"]):
+        script.extract()
+    text = soup.get_text()
+    lines = (line.strip() for line in text.splitlines())
+    for line in lines:
+        print(line)
+        line = line.replace(","," ")
+        f.write(line)
+    f.close()
+    D = {}
+    f = codecs.open("code.txt","r",encoding="utf-8")
+    words = f.read().split()
+    wc = len(words)
+    print(wc)
+    
+
+    for word in words:
+        if word not in ignoreset:
+            if word not in D:
+                D[word] = 1
+            else:
+                D[word]+= 1
+    f.close()
+    for word in sorted(D.keys()):
+        print(word,D[word],(D[word]/wc)*100)
+    i+=1
+    conn=sqlite3.connect('proj.sqlite3')
+    conn.execute('''drop table if exists words''')
+    conn.execute('''create table words(url text,word text,count int)''')
+    for word in sorted(D.keys()):
+        str1 = "insert into words values('www.python.org','"+word+"','"+str(D[word])+"')"
+    print(str1)
+
+    conn.execute("insert into words values('www.python.org','"+word+"','"+str(D[word])+"')")
+    conn.commit()
+    cursor = conn.execute("select * from words order by count desc")
+    count = 1
+    for row in cursor:
+        print("word:",row[1])
+        print("count: ",row[2])
+        count+=1
+    if(count==6):
+      break
+    os.remove("code.txt")
+    print("File Removed")
+
